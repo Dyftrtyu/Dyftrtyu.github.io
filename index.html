@@ -35,6 +35,7 @@
       border-radius: 16px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
+      background: black;
     }
     video:hover {
       transform: scale(1.02);
@@ -49,23 +50,33 @@
 
   <script>
     const videos = [
-      "BV11BRmY9E38_p1.mp4",
-      "BV22BRmY9E38_p2.mp4",
-      "BV33BRmY9E38_p3.mp4",
-      "BV44BRmY9E38_p4.mp4"
+      { src: "BV11BRmY9E38_p1.mp4", poster: "cover1.jpg" },
+      { src: "BV22BRmY9E38_p2.mp4", poster: "cover2.jpg" },
+      { src: "BV33BRmY9E38_p3.mp4", poster: "cover3.jpg" },
+      { src: "BV44BRmY9E38_p4.mp4", poster: "cover4.jpg" }
     ];
 
     const container = document.getElementById('video-container');
 
-    videos.forEach(src => {
+    videos.forEach((videoData, index) => {
       const video = document.createElement('video');
       video.controls = true;
+      video.poster = videoData.poster;
+
+      // 第一个视频自动播放
+      if (index === 0) {
+        video.autoplay = true;
+        video.muted = true; // 静音（浏览器要求，自动播放必须静音）
+        video.playsInline = true; // 手机上内联播放
+      }
 
       const source = document.createElement('source');
-      source.src = src;
+      source.src = videoData.src;
       source.type = 'video/mp4';
 
       video.appendChild(source);
       container.appendChild(video);
     });
-  </script
+  </script>
+</body>
+</html>
