@@ -22,6 +22,7 @@
       video.style.borderRadius = '16px';
       video.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.5)';
       video.style.margin = '20px 0';
+      video.style.backgroundColor = '#000'; // 黑色背景更好看
 
       const source = document.createElement('source');
       source.src = src;
@@ -29,6 +30,17 @@
 
       video.appendChild(source);
       container.appendChild(video);
+
+      // 监听播放事件，自动请求全屏
+      video.addEventListener('play', () => {
+        if (video.requestFullscreen) {
+          video.requestFullscreen();
+        } else if (video.webkitRequestFullscreen) { // Safari
+          video.webkitRequestFullscreen();
+        } else if (video.msRequestFullscreen) { // IE11
+          video.msRequestFullscreen();
+        }
+      });
     });
   </script>
 </body>
