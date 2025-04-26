@@ -1,4 +1,48 @@
-<body style="background: #000; color: #fff; margin: 0; padding: 20px; text-align: center;">
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>帅是一种感觉！</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #1f1c2c, #928dab);
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: white;
+      font-family: 'Helvetica Neue', 'Arial', sans-serif;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 40px;
+      font-size: 2.8em;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+    }
+    #video-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+    video {
+      width: 90%;
+      max-width: 720px;
+      margin: 20px 0;
+      border: 5px solid white;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    video:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
+    }
+  </style>
+</head>
+<body>
   <h1>帅是一种感觉！</h1>
 
   <div id="video-container"></div>
@@ -16,13 +60,6 @@
     videos.forEach(src => {
       const video = document.createElement('video');
       video.controls = true;
-      video.style.width = '100%';
-      video.style.maxWidth = '800px'; // 保持最大宽度，防止超出屏幕
-      video.style.border = '5px solid white';
-      video.style.borderRadius = '16px';
-      video.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.5)';
-      video.style.margin = '20px auto';
-      video.style.display = 'block';
 
       const source = document.createElement('source');
       source.src = src;
@@ -31,5 +68,4 @@
       video.appendChild(source);
       container.appendChild(video);
     });
-  </script>
-</body>
+  </script
