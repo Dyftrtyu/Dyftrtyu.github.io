@@ -27,19 +27,29 @@
       align-items: center;
       width: 100%;
     }
-    video {
+    .video-wrapper {
+      position: relative;
       width: 90%;
       max-width: 720px;
       margin: 20px 0;
+      cursor: pointer;
+    }
+    .video-wrapper img {
+      width: 100%;
       border: 5px solid white;
       border-radius: 16px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
-      background: black;
     }
-    video:hover {
+    .video-wrapper:hover img {
       transform: scale(1.02);
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
+    }
+    video {
+      width: 100%;
+      border: 5px solid white;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     }
   </style>
 </head>
@@ -58,24 +68,30 @@
 
     const container = document.getElementById('video-container');
 
-    videos.forEach((videoData, index) => {
-      const video = document.createElement('video');
-      video.controls = true;
-      video.poster = videoData.poster;
+    videos.forEach(videoData => {
+      // 创建封面层
+      const wrapper = document.createElement('div');
+      wrapper.className = 'video-wrapper';
 
-      // 第一个视频自动播放
-      if (index === 0) {
+      const coverImg = document.createElement('img');
+      coverImg.src = videoData.poster;
+      wrapper.appendChild(coverImg);
+
+      // 点击封面时，替换成真正的视频
+      wrapper.addEventListener('click', () => {
+        const video = document.createElement('video');
+        video.src = videoData.src;
+        video.controls = true;
         video.autoplay = true;
-        video.muted = true; // 静音（浏览器要求，自动播放必须静音）
-        video.playsInline = true; // 手机上内联播放
-      }
+        video.muted = false;
+        video.playsInline = true;
 
-      const source = document.createElement('source');
-      source.src = videoData.src;
-      source.type = 'video/mp4';
+        wrapper.innerHTML = ''; // 清空封面
+        wrapper.appendChild(video);
+        video.play(); // 播放视频
+      });
 
-      video.appendChild(source);
-      container.appendChild(video);
+      container.appendChild(wrapper);
     });
   </script>
 </body>
