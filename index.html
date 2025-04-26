@@ -1,4 +1,4 @@
-<body>
+<body style="background: #000; color: #fff; margin: 0; padding: 20px; text-align: center;">
   <h1>帅是一种感觉！</h1>
 
   <div id="video-container"></div>
@@ -16,13 +16,13 @@
     videos.forEach(src => {
       const video = document.createElement('video');
       video.controls = true;
-      video.style.width = '90%';
-      video.style.maxWidth = '720px';
+      video.style.width = '100%';
+      video.style.maxWidth = '800px'; // 保持最大宽度，防止超出屏幕
       video.style.border = '5px solid white';
       video.style.borderRadius = '16px';
       video.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.5)';
-      video.style.margin = '20px 0';
-      video.style.backgroundColor = '#000'; // 黑色背景更好看
+      video.style.margin = '20px auto';
+      video.style.display = 'block';
 
       const source = document.createElement('source');
       source.src = src;
@@ -30,17 +30,6 @@
 
       video.appendChild(source);
       container.appendChild(video);
-
-      // 监听播放事件，自动请求全屏
-      video.addEventListener('play', () => {
-        if (video.requestFullscreen) {
-          video.requestFullscreen();
-        } else if (video.webkitRequestFullscreen) { // Safari
-          video.webkitRequestFullscreen();
-        } else if (video.msRequestFullscreen) { // IE11
-          video.msRequestFullscreen();
-        }
-      });
     });
   </script>
 </body>
