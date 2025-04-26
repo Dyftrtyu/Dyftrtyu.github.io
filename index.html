@@ -2,97 +2,252 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>帅是一种感觉！</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>刷短视频网站</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body {
-      background: linear-gradient(135deg, #1f1c2c, #928dab);
-      min-height: 100vh;
+    html, body {
       margin: 0;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      color: white;
-      font-family: 'Helvetica Neue', 'Arial', sans-serif;
-      text-align: center;
+      height: 100%;
+      overflow: hidden;
+      background: black;
     }
-    h1 {
-      margin-bottom: 40px;
-      font-size: 2.8em;
-      text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
-    }
-    #video-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    .video-slide {
       width: 100%;
-    }
-    .video-wrapper {
+      height: 100%;
+      flex-shrink: 0;
       position: relative;
-      width: 90%;
-      max-width: 720px;
-      margin: 20px 0;
-      cursor: pointer;
-    }
-    .video-wrapper img {
-      width: 100%;
-      border: 5px solid white;
-      border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .video-wrapper:hover img {
-      transform: scale(1.02);
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
+      overflow: hidden;
     }
     video {
       width: 100%;
-      border: 5px solid white;
-      border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      height: 100%;
+      object-fit: cover;
+    }
+    .info {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      color: white;
+      z-index: 10;
+    }
+    .like-icon {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      background: url('https://cdn-icons-png.flaticon.com/512/833/833472.png') no-repeat center;
+      background-size: contain;
+      opacity: 0;
+      animation: like 1s ease forwards;
+    }
+    @keyframes like {
+      0% { transform: scale(0); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); opacity: 0; }
+    }
+    .like-btn {
+      position: absolute;
+      bottom: 10px;
+      left: 20px;
+      background-color: rgba(255, 255, 255, 0.5);
+      padding: 8px 16px;
+      color: white;
+      border-radius: 20px;
+    }
+    /* 加一个下拉提示 */
+    #pull-indicator {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-50px);
+      color: white;
+      opacity: 0.8;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      z-index: 100;
     }
   </style>
 </head>
 <body>
-  <h1>帅是一种感觉！</h1>
 
-  <div id="video-container"></div>
+<div id="pull-indicator">下拉刷新</div>
 
-  <script>
-    const videos = [
-      { src: "BV11BRmY9E38_p1.mp4", poster: "[BV11BRmY9E38_p1].png" },
-      { src: "BV22BRmY9E38_p2.mp4", poster: "cover2.jpg" },
-      { src: "BV33BRmY9E38_p3.mp4", poster: "cover3.jpg" },
-      { src: "BV44BRmY9E38_p4.mp4", poster: "cover4.jpg" }
+<div id="container" class="flex flex-col overflow-hidden h-full">
+  <!-- 视频列表 -->
+  <div class="video-slide">
+    <video src="video1.mp4" autoplay muted playsinline></video>
+    <div class="info">
+      <div class="flex items-center mb-2">
+        <img src="avatar1.png" alt="头像" class="w-8 h-8 rounded-full mr-2">
+        <span>@用户1</span>
+      </div>
+      <p>这是一段很精彩的视频描述！</p>
+    </div>
+    <button class="like-btn" onclick="likeVideo(1)">点赞 <span id="like-count-1">0</span></button>
+  </div>
+
+  <div class="video-slide">
+    <video src="video2.mp4" muted playsinline></video>
+    <div class="info">
+      <div class="flex items-center mb-2">
+        <img src="avatar2.png" alt="头像" class="w-8 h-8 rounded-full mr-2">
+        <span>@用户2</span>
+      </div>
+      <p>又来一条精彩内容，点个赞吧！</p>
+    </div>
+    <button class="like-btn" onclick="likeVideo(2)">点赞 <span id="like-count-2">0</span></button>
+  </div>
+
+</div>
+
+<script>
+let current = 0;
+let slides = document.querySelectorAll('.video-slide');
+const container = document.getElementById('container');
+let videos = document.querySelectorAll('video');
+const pullIndicator = document.getElementById('pull-indicator');
+
+// 读取本地点赞数量
+let likeCounts = JSON.parse(localStorage.getItem('likeCounts') || '{}');
+
+function showSlide(index) {
+  container.style.transform = `translateY(-${index * 100}%)`;
+  container.style.transition = 'transform 0.5s ease';
+  videos.forEach((video, i) => {
+    if (i === index) {
+      video.play();
+    } else {
+      video.pause();
+      video.currentTime = 0;
+    }
+  });
+}
+
+// 点赞功能
+function likeVideo(videoIndex) {
+  if (!likeCounts[videoIndex]) {
+    likeCounts[videoIndex] = 0;
+  }
+  likeCounts[videoIndex]++;
+  localStorage.setItem('likeCounts', JSON.stringify(likeCounts));
+  updateLikeCount(videoIndex);
+}
+
+// 更新点赞数量显示
+function updateLikeCount(videoIndex) {
+  const countSpan = document.getElementById('like-count-' + videoIndex);
+  if (countSpan) {
+    countSpan.textContent = likeCounts[videoIndex] || 0;
+  }
+}
+
+// 初始化点赞数量
+function initLikes() {
+  for (let i = 1; i <= slides.length; i++) {
+    updateLikeCount(i);
+  }
+}
+
+initLikes();
+
+// 触摸滑动相关
+let startY = 0;
+let isRefreshing = false;
+
+document.addEventListener('touchstart', e => {
+  startY = e.touches[0].clientY;
+});
+
+document.addEventListener('touchend', e => {
+  let endY = e.changedTouches[0].clientY;
+  if (endY - startY > 80) {
+    // 下拉刷新
+    if (!isRefreshing && current === 0) {
+      refreshVideos();
+    } else {
+      current = Math.max(0, current - 1);
+      showSlide(current);
+    }
+  } else if (startY - endY > 50) {
+    current = Math.min(slides.length - 1, current + 1);
+    showSlide(current);
+  }
+});
+
+document.addEventListener('wheel', e => {
+  if (e.deltaY > 0) {
+    current = Math.min(slides.length - 1, current + 1);
+    showSlide(current);
+  } else if (e.deltaY < 0) {
+    current = Math.max(0, current - 1);
+    showSlide(current);
+  }
+});
+
+// 视频结束后自动跳下一条
+function bindVideoEvents() {
+  videos.forEach((video, index) => {
+    video.addEventListener('ended', () => {
+      if (current < slides.length - 1) {
+        current++;
+        showSlide(current);
+      }
+    });
+  });
+}
+bindVideoEvents();
+
+// 下拉刷新逻辑
+function refreshVideos() {
+  isRefreshing = true;
+  pullIndicator.textContent = '刷新中...';
+  pullIndicator.style.transform = 'translateX(-50%) translateY(10px)';
+
+  setTimeout(() => {
+    const newVideos = [
+      {
+        src: 'video3.mp4',
+        avatar: 'avatar3.png',
+        username: '@用户3',
+        description: '新刷出来的一条短视频～'
+      },
+      {
+        src: 'video4.mp4',
+        avatar: 'avatar4.png',
+        username: '@用户4',
+        description: '下拉刷新又来一条短片！'
+      }
     ];
 
-    const container = document.getElementById('video-container');
-
-    videos.forEach(videoData => {
-      // 创建封面层
-      const wrapper = document.createElement('div');
-      wrapper.className = 'video-wrapper';
-
-      const coverImg = document.createElement('img');
-      coverImg.src = videoData.poster;
-      wrapper.appendChild(coverImg);
-
-      // 点击封面时，替换成真正的视频
-      wrapper.addEventListener('click', () => {
-        const video = document.createElement('video');
-        video.src = videoData.src;
-        video.controls = true;
-        video.autoplay = true;
-        video.muted = false;
-        video.playsInline = true;
-
-        wrapper.innerHTML = ''; // 清空封面
-        wrapper.appendChild(video);
-        video.play(); // 播放视频
-      });
-
-      container.appendChild(wrapper);
+    newVideos.forEach((data, index) => {
+      const slide = document.createElement('div');
+      slide.className = 'video-slide';
+      slide.innerHTML = `
+        <video src="${data.src}" muted playsinline></video>
+        <div class="info">
+          <div class="flex items-center mb-2">
+            <img src="${data.avatar}" alt="头像" class="w-8 h-8 rounded-full mr-2">
+            <span>${data.username}</span>
+          </div>
+          <p>${data.description}</p>
+        </div>
+        <button class="like-btn" onclick="likeVideo(${slides.length + index + 1})">点赞 <span id="like-count-${slides.length + index + 1}">0</span></button>
+      `;
+      container.appendChild(slide);
     });
-  </script>
+
+    // 更新元素
+    slides = document.querySelectorAll('.video-slide');
+    videos = document.querySelectorAll('video');
+    bindVideoEvents();
+    initLikes();
+
+    isRefreshing = false;
+    pullIndicator.textContent = '下拉刷新';
+    pullIndicator.style.transform = 'translateX(-50%) translateY(-50px)';
+  }, 1000);
+}
+</script>
+
 </body>
 </html>
