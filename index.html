@@ -29,7 +29,6 @@
       50% { transform: scale(1.5); }
       100% { transform: scale(1); }
     }
-    /* 评论弹窗 */
     .comment-box {
       position: absolute;
       bottom: 0;
@@ -68,6 +67,23 @@
       font-size: 14px;
       word-break: break-word;
     }
+    .manage-panel {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .manage-panel button {
+      padding: 8px 12px;
+      background: #333;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -84,11 +100,17 @@
   </div>
 </div>
 
+<div class="manage-panel">
+  <button id="clearCommentsBtn">清空评论</button>
+  <button id="clearLikesBtn">清空点赞</button>
+  <button id="refreshDataBtn">刷新</button>
+</div>
+
 <script>
   const videos = [
-    { url: "video1.mp4", id: 'v1' },  // 示例视频1
-    { url: "https://www.w3schools.com/html/movie.mp4", id: 'v2' },   // 示例视频2
-    { url: "https://www.w3schools.com/html/movie.ogg", id: 'v3' }    // 示例视频3
+    { url: "video1.mp4", id: 'v1' },
+    { url: "https://www.w3schools.com/html/movie.mp4", id: 'v2' },
+    { url: "https://www.w3schools.com/html/movie.ogg", id: 'v3' }
   ];
 
   const container = document.getElementById('container');
@@ -96,11 +118,14 @@
   const commentList = document.getElementById('commentList');
   const commentInput = document.getElementById('commentInput');
   const sendBtn = document.getElementById('sendBtn');
-  
+  const clearCommentsBtn = document.getElementById('clearCommentsBtn');
+  const clearLikesBtn = document.getElementById('clearLikesBtn');
+  const refreshDataBtn = document.getElementById('refreshDataBtn');
+
   let current = 0;
   let startY = 0;
   let moveY = 0;
-  let isSwiping = false;  // 用于标记是否是滑动操作
+  let isSwiping = false;
   const videoElements = [];
   const likeBtns = [];
   const commentBtns = [];
@@ -117,7 +142,6 @@
       vid.preload = "auto";
       vid.playsInline = true;
 
-      // 双击点赞
       vid.addEventListener('dblclick', () => {
         const btn = likeBtns[current];
         triggerLike(btn);
@@ -126,7 +150,6 @@
       const controls = document.createElement('div');
       controls.className = 'controls';
 
-      // 点赞
       const likeBtn = document.createElement('div');
       likeBtn.className = 'control-btn like-btn';
       likeBtn.innerHTML = '❤️';
@@ -138,7 +161,6 @@
         triggerLike(likeBtn);
       });
 
-      // 评论
       const commentBtn = document.createElement('div');
       commentBtn.className = 'control-btn comment-btn';
       commentBtn.innerHTML = '💬';
@@ -185,23 +207,18 @@
 
   container.addEventListener('touchstart', e => {
     startY = e.touches[0].clientY;
-    isSwiping = false;  // 初始化标记为非滑动
+    isSwiping = false;
   });
 
   container.addEventListener('touchmove', e => {
     moveY = e.touches[0].clientY;
-    isSwiping = Math.abs(moveY - startY) > 10;  // 如果滑动距离大于10像素，则认为是滑动
+    isSwiping = Math.abs(moveY - startY) > 10;
   });
 
   container.addEventListener('touchend', () => {
     if (!isSwiping) {
-      // 如果没有滑动，执行点击事件
-      const vid = videoElements[current];
-      const likeBtn = likeBtns[current];
-      // 处理点赞或其他点击事件
-      triggerLike(likeBtn);
+      triggerLike(likeBtns[current]);
     } else {
-      // 处理滑动事件
       const diff = moveY - startY;
       if (diff < -50 && current < videos.length - 1) {
         current++;
@@ -229,7 +246,7 @@
       loadComments();
       setTimeout(() => {
         commentList.scrollTop = commentList.scrollHeight;
-      }, 100); // 延迟一下，等DOM更新
+      }, 100);
     }
   });
 
@@ -251,7 +268,6 @@
       commentList.appendChild(div);
     });
 
-    // 更新评论数量
     const commentBtn = commentBtns[current];
     const commentCount = commentBtn.querySelector('.comment-count');
     commentCount.textContent = comments.length;
@@ -261,7 +277,6 @@
     const likeCount = likeBtn.querySelector('.like-count');
     let count = parseInt(likeCount.textContent) || 0;
     const likesState = JSON.parse(localStorage.getItem('likesState')) || {};
-
     const videoId = videos[current].id;
     const liked = likesState[videoId] || false;
 
@@ -292,8 +307,6 @@
     likes.forEach((count, i) => {
       if (likeBtns[i]) {
         likeBtns[i].querySelector('.like-count').textContent = count;
-
-        // 恢复点赞按钮的高亮效果
         const videoId = videos[i].id;
         if (likesState[videoId]) {
           likeBtns[i].classList.add('animated');
@@ -309,7 +322,35 @@
     loadComments();
   }
 
-  // 初始化
+  clearCommentsBtn.addEventListener('click', () => {
+    videos.forEach(video => {
+      localStorage.removeItem('comments_' + video.id);
+    });
+    loadComments();
+  });
+
+  clearLikesBtn.addEventListener('click', () => {
+    localStorage.removeItem('likes');
+    localStorage.removeItem('likesState');
+    loadLikes();
+  });
+
+  refreshDataBtn.addEventListener('click', () => {
+    refreshVideos();
+  });
+
+  function refreshVideos() {
+    videoElements.forEach(video => video.pause());
+    container.innerHTML = '';
+    videoElements.length = 0;
+    likeBtns.length = 0;
+    commentBtns.length = 0;
+    createVideos();
+    current = 0;
+    updatePosition();
+    playCurrentVideo();
+  }
+
   createVideos();
   playCurrentVideo();
 </script>
