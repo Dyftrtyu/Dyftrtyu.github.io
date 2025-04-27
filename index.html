@@ -2,251 +2,316 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>刷短视频网站</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>仿抖音网页版（带点赞/评论/双击）</title>
   <style>
-    html, body {
-      margin: 0;
-      height: 100%;
-      overflow: hidden;
-      background: black;
-    }
-    .video-slide {
-      width: 100%;
-      height: 100%;
-      flex-shrink: 0;
-      position: relative;
-      overflow: hidden;
-    }
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .info {
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: black; }
+    .container { width: 100%; height: 100%; position: relative; overflow: hidden; touch-action: pan-y; }
+    .video-item { width: 100%; height: 100%; position: absolute; transition: transform 0.3s ease; }
+    video { width: 100%; height: 100%; object-fit: cover; }
+    .controls {
       position: absolute;
-      bottom: 20px;
-      left: 20px;
+      right: 10px;
+      bottom: 100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
       color: white;
-      z-index: 10;
+      font-size: 24px;
     }
-    .like-icon {
+    .control-btn { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+    .like-count, .comment-count { font-size: 14px; margin-top: 5px; }
+    .like-btn.animated { animation: pop 0.3s; }
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.5); }
+      100% { transform: scale(1); }
+    }
+    /* 评论弹窗 */
+    .comment-box {
       position: absolute;
-      width: 80px;
-      height: 80px;
-      background: url('https://cdn-icons-png.flaticon.com/512/833/833472.png') no-repeat center;
-      background-size: contain;
-      opacity: 0;
-      animation: like 1s ease forwards;
-    }
-    @keyframes like {
-      0% { transform: scale(0); opacity: 1; }
-      50% { transform: scale(1.2); opacity: 1; }
-      100% { transform: scale(1); opacity: 0; }
-    }
-    .like-btn {
-      position: absolute;
-      bottom: 10px;
-      left: 20px;
-      background-color: rgba(255, 255, 255, 0.5);
-      padding: 8px 16px;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      max-height: 60%;
+      background: rgba(0,0,0,0.9);
       color: white;
+      display: none;
+      flex-direction: column;
+      padding: 10px;
+      overflow-y: auto;
+    }
+    .comment-input {
+      display: flex;
+      margin-top: auto;
+      padding: 10px 0;
+    }
+    .comment-input input {
+      flex: 1;
+      padding: 8px;
+      border: none;
       border-radius: 20px;
+      margin-right: 10px;
     }
-    /* 加一个下拉提示 */
-    #pull-indicator {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%) translateY(-50px);
+    .comment-input button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 20px;
+      background: #ff0050;
       color: white;
-      opacity: 0.8;
+      font-weight: bold;
+    }
+    .comment-item {
+      margin-bottom: 10px;
       font-size: 14px;
-      transition: all 0.3s ease;
-      z-index: 100;
+      word-break: break-word;
     }
   </style>
 </head>
 <body>
 
-<div id="pull-indicator">下拉刷新</div>
+<div class="container" id="container">
+  <!-- 视频项动态插入 -->
+</div>
 
-<div id="container" class="flex flex-col overflow-hidden h-full">
-  <!-- 视频列表 -->
-  <div class="video-slide">
-    <video src="video1.mp4" autoplay muted playsinline></video>
-    <div class="info">
-      <div class="flex items-center mb-2">
-        <img src="avatar1.png" alt="头像" class="w-8 h-8 rounded-full mr-2">
-        <span>@用户1</span>
-      </div>
-      <p>这是一段很精彩的视频描述！</p>
-    </div>
-    <button class="like-btn" onclick="likeVideo(1)">点赞 <span id="like-count-1">0</span></button>
+<div class="comment-box" id="commentBox">
+  <div id="commentList"></div>
+  <div class="comment-input">
+    <input type="text" id="commentInput" placeholder="说点什么..." />
+    <button id="sendBtn">发送</button>
   </div>
-
-  <div class="video-slide">
-    <video src="video2.mp4" muted playsinline></video>
-    <div class="info">
-      <div class="flex items-center mb-2">
-        <img src="avatar2.png" alt="头像" class="w-8 h-8 rounded-full mr-2">
-        <span>@用户2</span>
-      </div>
-      <p>又来一条精彩内容，点个赞吧！</p>
-    </div>
-    <button class="like-btn" onclick="likeVideo(2)">点赞 <span id="like-count-2">0</span></button>
-  </div>
-
 </div>
 
 <script>
-let current = 0;
-let slides = document.querySelectorAll('.video-slide');
-const container = document.getElementById('container');
-let videos = document.querySelectorAll('video');
-const pullIndicator = document.getElementById('pull-indicator');
+  const videos = [
+    { url: "video1.mp4", id: 'v1' },  // 示例视频1
+    { url: "https://www.w3schools.com/html/movie.mp4", id: 'v2' },   // 示例视频2
+    { url: "https://www.w3schools.com/html/movie.ogg", id: 'v3' }    // 示例视频3
+  ];
 
-// 读取本地点赞数量
-let likeCounts = JSON.parse(localStorage.getItem('likeCounts') || '{}');
+  const container = document.getElementById('container');
+  const commentBox = document.getElementById('commentBox');
+  const commentList = document.getElementById('commentList');
+  const commentInput = document.getElementById('commentInput');
+  const sendBtn = document.getElementById('sendBtn');
+  
+  let current = 0;
+  let startY = 0;
+  let moveY = 0;
+  let isSwiping = false;  // 用于标记是否是滑动操作
+  const videoElements = [];
+  const likeBtns = [];
+  const commentBtns = [];
 
-function showSlide(index) {
-  container.style.transform = `translateY(-${index * 100}%)`;
-  container.style.transition = 'transform 0.5s ease';
-  videos.forEach((video, i) => {
-    if (i === index) {
-      video.play();
-    } else {
-      video.pause();
-      video.currentTime = 0;
-    }
+  function createVideos() {
+    videos.forEach((video, index) => {
+      const div = document.createElement('div');
+      div.className = 'video-item';
+      div.style.transform = `translateY(${index * 100}%)`;
+
+      const vid = document.createElement('video');
+      vid.src = video.url;
+      vid.loop = true;
+      vid.preload = "auto";
+      vid.playsInline = true;
+
+      // 双击点赞
+      vid.addEventListener('dblclick', () => {
+        const btn = likeBtns[current];
+        triggerLike(btn);
+      });
+
+      const controls = document.createElement('div');
+      controls.className = 'controls';
+
+      // 点赞
+      const likeBtn = document.createElement('div');
+      likeBtn.className = 'control-btn like-btn';
+      likeBtn.innerHTML = '❤️';
+      const likeCount = document.createElement('div');
+      likeCount.className = 'like-count';
+      likeBtn.appendChild(likeCount);
+
+      likeBtn.addEventListener('click', () => {
+        triggerLike(likeBtn);
+      });
+
+      // 评论
+      const commentBtn = document.createElement('div');
+      commentBtn.className = 'control-btn comment-btn';
+      commentBtn.innerHTML = '💬';
+      const commentCount = document.createElement('div');
+      commentCount.className = 'comment-count';
+      commentBtn.appendChild(commentCount);
+
+      commentBtn.addEventListener('click', () => {
+        openCommentBox();
+      });
+
+      controls.appendChild(likeBtn);
+      controls.appendChild(commentBtn);
+
+      div.appendChild(vid);
+      div.appendChild(controls);
+
+      container.appendChild(div);
+      videoElements.push(vid);
+      likeBtns.push(likeBtn);
+      commentBtns.push(commentBtn);
+    });
+  }
+
+  function playCurrentVideo() {
+    videoElements.forEach((video, index) => {
+      if (index === current) {
+        video.play();
+      } else {
+        video.pause();
+      }
+    });
+    updateLikeCommentUI();
+  }
+
+  function openCommentBox() {
+    commentBox.style.display = 'flex';
+    loadComments();
+  }
+
+  function closeCommentBox() {
+    commentBox.style.display = 'none';
+  }
+
+  container.addEventListener('touchstart', e => {
+    startY = e.touches[0].clientY;
+    isSwiping = false;  // 初始化标记为非滑动
   });
-}
 
-// 点赞功能
-function likeVideo(videoIndex) {
-  if (!likeCounts[videoIndex]) {
-    likeCounts[videoIndex] = 0;
-  }
-  likeCounts[videoIndex]++;
-  localStorage.setItem('likeCounts', JSON.stringify(likeCounts));
-  updateLikeCount(videoIndex);
-}
+  container.addEventListener('touchmove', e => {
+    moveY = e.touches[0].clientY;
+    isSwiping = Math.abs(moveY - startY) > 10;  // 如果滑动距离大于10像素，则认为是滑动
+  });
 
-// 更新点赞数量显示
-function updateLikeCount(videoIndex) {
-  const countSpan = document.getElementById('like-count-' + videoIndex);
-  if (countSpan) {
-    countSpan.textContent = likeCounts[videoIndex] || 0;
-  }
-}
-
-// 初始化点赞数量
-function initLikes() {
-  for (let i = 1; i <= slides.length; i++) {
-    updateLikeCount(i);
-  }
-}
-
-initLikes();
-
-// 触摸滑动相关
-let startY = 0;
-let isRefreshing = false;
-
-document.addEventListener('touchstart', e => {
-  startY = e.touches[0].clientY;
-});
-
-document.addEventListener('touchend', e => {
-  let endY = e.changedTouches[0].clientY;
-  if (endY - startY > 80) {
-    // 下拉刷新
-    if (!isRefreshing && current === 0) {
-      refreshVideos();
+  container.addEventListener('touchend', () => {
+    if (!isSwiping) {
+      // 如果没有滑动，执行点击事件
+      const vid = videoElements[current];
+      const likeBtn = likeBtns[current];
+      // 处理点赞或其他点击事件
+      triggerLike(likeBtn);
     } else {
-      current = Math.max(0, current - 1);
-      showSlide(current);
-    }
-  } else if (startY - endY > 50) {
-    current = Math.min(slides.length - 1, current + 1);
-    showSlide(current);
-  }
-});
-
-document.addEventListener('wheel', e => {
-  if (e.deltaY > 0) {
-    current = Math.min(slides.length - 1, current + 1);
-    showSlide(current);
-  } else if (e.deltaY < 0) {
-    current = Math.max(0, current - 1);
-    showSlide(current);
-  }
-});
-
-// 视频结束后自动跳下一条
-function bindVideoEvents() {
-  videos.forEach((video, index) => {
-    video.addEventListener('ended', () => {
-      if (current < slides.length - 1) {
+      // 处理滑动事件
+      const diff = moveY - startY;
+      if (diff < -50 && current < videos.length - 1) {
         current++;
-        showSlide(current);
+        closeCommentBox();
+      } else if (diff > 50 && current > 0) {
+        current--;
+        closeCommentBox();
       }
-    });
+      updatePosition();
+      playCurrentVideo();
+    }
   });
-}
-bindVideoEvents();
 
-// 下拉刷新逻辑
-function refreshVideos() {
-  isRefreshing = true;
-  pullIndicator.textContent = '刷新中...';
-  pullIndicator.style.transform = 'translateX(-50%) translateY(10px)';
+  function updatePosition() {
+    document.querySelectorAll('.video-item').forEach((el, index) => {
+      el.style.transform = `translateY(${(index - current) * 100}%)`;
+    });
+  }
 
-  setTimeout(() => {
-    const newVideos = [
-      {
-        src: 'video3.mp4',
-        avatar: 'avatar3.png',
-        username: '@用户3',
-        description: '新刷出来的一条短视频～'
-      },
-      {
-        src: 'video4.mp4',
-        avatar: 'avatar4.png',
-        username: '@用户4',
-        description: '下拉刷新又来一条短片！'
-      }
-    ];
+  sendBtn.addEventListener('click', () => {
+    const text = commentInput.value.trim();
+    if (text !== '') {
+      saveComment(videos[current].id, text);
+      commentInput.value = '';
+      loadComments();
+      setTimeout(() => {
+        commentList.scrollTop = commentList.scrollHeight;
+      }, 100); // 延迟一下，等DOM更新
+    }
+  });
 
-    newVideos.forEach((data, index) => {
-      const slide = document.createElement('div');
-      slide.className = 'video-slide';
-      slide.innerHTML = `
-        <video src="${data.src}" muted playsinline></video>
-        <div class="info">
-          <div class="flex items-center mb-2">
-            <img src="${data.avatar}" alt="头像" class="w-8 h-8 rounded-full mr-2">
-            <span>${data.username}</span>
-          </div>
-          <p>${data.description}</p>
-        </div>
-        <button class="like-btn" onclick="likeVideo(${slides.length + index + 1})">点赞 <span id="like-count-${slides.length + index + 1}">0</span></button>
-      `;
-      container.appendChild(slide);
+  function saveComment(videoId, comment) {
+    const key = 'comments_' + videoId;
+    let comments = JSON.parse(localStorage.getItem(key)) || [];
+    comments.push(comment);
+    localStorage.setItem(key, JSON.stringify(comments));
+  }
+
+  function loadComments() {
+    const key = 'comments_' + videos[current].id;
+    let comments = JSON.parse(localStorage.getItem(key)) || [];
+    commentList.innerHTML = '';
+    comments.forEach(c => {
+      const div = document.createElement('div');
+      div.className = 'comment-item';
+      div.textContent = c;
+      commentList.appendChild(div);
     });
 
-    // 更新元素
-    slides = document.querySelectorAll('.video-slide');
-    videos = document.querySelectorAll('video');
-    bindVideoEvents();
-    initLikes();
+    // 更新评论数量
+    const commentBtn = commentBtns[current];
+    const commentCount = commentBtn.querySelector('.comment-count');
+    commentCount.textContent = comments.length;
+  }
 
-    isRefreshing = false;
-    pullIndicator.textContent = '下拉刷新';
-    pullIndicator.style.transform = 'translateX(-50%) translateY(-50px)';
-  }, 1000);
-}
+  function triggerLike(likeBtn) {
+    const likeCount = likeBtn.querySelector('.like-count');
+    let count = parseInt(likeCount.textContent) || 0;
+    const likesState = JSON.parse(localStorage.getItem('likesState')) || {};
+
+    const videoId = videos[current].id;
+    const liked = likesState[videoId] || false;
+
+    if (liked) {
+      count--;
+      likeBtn.classList.remove('animated');
+      likesState[videoId] = false;
+    } else {
+      count++;
+      likeBtn.classList.add('animated');
+      likesState[videoId] = true;
+      setTimeout(() => likeBtn.classList.remove('animated'), 300);
+    }
+
+    likeCount.textContent = count;
+    localStorage.setItem('likesState', JSON.stringify(likesState));
+    saveLikes();
+  }
+
+  function saveLikes() {
+    const likes = likeBtns.map(btn => parseInt(btn.querySelector('.like-count').textContent) || 0);
+    localStorage.setItem('likes', JSON.stringify(likes));
+  }
+
+  function loadLikes() {
+    const likes = JSON.parse(localStorage.getItem('likes')) || [];
+    const likesState = JSON.parse(localStorage.getItem('likesState')) || {};
+    likes.forEach((count, i) => {
+      if (likeBtns[i]) {
+        likeBtns[i].querySelector('.like-count').textContent = count;
+
+        // 恢复点赞按钮的高亮效果
+        const videoId = videos[i].id;
+        if (likesState[videoId]) {
+          likeBtns[i].classList.add('animated');
+        } else {
+          likeBtns[i].classList.remove('animated');
+        }
+      }
+    });
+  }
+
+  function updateLikeCommentUI() {
+    loadLikes();
+    loadComments();
+  }
+
+  // 初始化
+  createVideos();
+  playCurrentVideo();
 </script>
 
 </body>
